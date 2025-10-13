@@ -1,177 +1,113 @@
-
-
-```
 # 🌀 StacksRunner
 
-**StacksRunner** is a 2D blockchain-based maze game built on the **Stacks blockchain**.  
-Players navigate through maze levels, earn on-chain rewards, and collect NFTs as progress badges.  
-The project combines **Clarity smart contracts** for game logic and **React + Vite** for the interactive frontend experience.
+**StacksRunner** is a blockchain-powered 2D maze game built on the **Stacks Blockchain**. Players navigate mazes to earn token rewards, gain XP, and unlock NFT passkeys as they advance through levels.
 
 ---
 
-## 🎯 Core Concept
+## 🎯 Project Overview
 
-Players start at Level 1 and progress through increasingly challenging mazes.  
-At key milestones:
-- 🪙 **Earn XP Tokens** – used to continue from failed points or unlock special abilities.  
-- 🎖️ **Mint MazePass NFTs** – awarded at Level 5 as a **pass key** to advanced levels.  
+StacksRunner integrates gameplay with on-chain mechanics. Players earn rewards and interact with smart contracts written in **Clarity**, the Stacks smart contract language.
+
+### Core Features
+- 🧩 **Maze Challenges:** Players move through maze levels of increasing difficulty.
+- 💰 **Token Rewards:** Players earn $RUN tokens for completing levels.
+- 🧠 **XP System:** Players can purchase XP tokens to continue from failed points.
+- 🎟️ **NFT Passkeys:** Upon reaching level 5, players receive an NFT passkey that unlocks exclusive game access.
+- 🔒 **On-Chain Fairness:** Game logic and rewards are handled transparently via Clarity smart contracts.
 
 ---
 
 ## 🧱 Project Structure
 
 ```
-
-stacksrunner/
+StacksRunner/
 │
-├── contracts/                      # Clarity smart contracts (game, XP token, NFT)
-│   ├── MazeGame.clar
-│   ├── MazePassNFT.clar
-│   ├── MazeXPToken.clar
-│   ├── tests/                      # Clarinet test files
-│   └── Clarinet.toml
+├── contracts/               # Clarity smart contracts for game logic, NFTs, and XP tokens
+│   ├── maze-game.clar       # Main game logic
+│   ├── xp-token.clar        # XP token logic
+│   ├── passkey-nft.clar     # NFT minting contract
+│   └── tests/               # Clarinet test scripts
 │
-├── web/                            # Frontend (2D game built with React + Vite)
-│   ├── src/
-│   │   ├── components/
-│   │   ├── game/
-│   │   ├── blockchain/             # Stacks.js integrations
-│   │   └── App.jsx
-│   ├── public/
-│   └── package.json
+├── frontend/                # Simple 2D web interface for the game
+│   ├── src/                 # React (or Svelte) source code
+│   ├── assets/              # Game images, sprites, and sounds
+│   ├── components/          # Reusable UI and gameplay components
+│   └── package.json         # Frontend dependencies
 │
-├── docs/                           # Documentation and design notes
-│   ├── GAME_FLOW.md
-│   ├── CONTRACT_ARCHITECTURE.md
-│   ├── FRONTEND_INTEGRATION.md
-│   └── ROADMAP.md
+├── docs/                    # Documentation and design resources
+│   ├── architecture.md      # Project architecture overview
+│   ├── gameflow.md          # Game logic and contract interactions
+│   └── api-reference.md     # Smart contract APIs
 │
-└── README.md                       # You're here!
-
-````
-
----
-
-## ⚙️ Tech Stack
-
-| Layer | Technology |
-|-------|-------------|
-| Smart Contracts | **Clarity** (Stacks blockchain) |
-| Local Dev | **Clarinet** |
-| Frontend | **React + Vite** |
-| Blockchain Connection | **Stacks.js** |
-| Package Manager | **npm** |
-| Version Control | **GitHub (StacksRunner org)** |
+├── scripts/                 # Deployment and setup scripts
+│   ├── deploy-contracts.sh
+│   ├── generate-wallets.sh
+│   └── seed-tokens.sh
+│
+└── README.md                # General project information
+```
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Clone the Repository
+### 1️⃣ Clone the Repository
 ```bash
-git clone https://github.com/stacksrunner/stacksrunner.git
+git clone https://github.com/<organization>/stacksrunner.git
 cd stacksrunner
-````
-
----
-
-### 2. Smart Contract Setup
-
-```bash
-cd contracts
-clarinet test
-clarinet console
 ```
 
-🧩 *Clarinet* runs local simulations and helps you test contract functions interactively.
-
----
-
-### 3. Frontend Setup
-
+### 2️⃣ Set Up the Smart Contracts
+Install [Clarinet](https://github.com/hirosystems/clarinet):
 ```bash
-cd web
+clarinet integrate
+clarinet test
+```
+
+### 3️⃣ Run the Frontend
+```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-The app will run on [http://localhost:5173](http://localhost:5173).
+---
+
+## 🧩 Tech Stack
+
+| Layer | Technology |
+|-------|-------------|
+| **Blockchain** | Stacks Blockchain |
+| **Smart Contract Language** | Clarity |
+| **Frontend Framework** | React or Svelte |
+| **Token Standards** | SIP-010 (Fungible Token), SIP-009 (NFT) |
+| **Dev Tools** | Clarinet, Hiro Wallet, Stacks.js |
 
 ---
 
-### 4. Folder Roles
+## 🧠 Contributors
 
-| Folder       | Role                                          |
-| ------------ | --------------------------------------------- |
-| `contracts/` | Blockchain logic — rewards, XP, NFTs          |
-| `web/`       | 2D maze interface + player UI                 |
-| `docs/`      | Project documentation for devs and team leads |
-
----
-
-## 🧩 Game Logic Highlights
-
-* **Progress System:** Tracks each player’s maze level and completion.
-* **XP Tokens:** Players can purchase or earn tokens to continue gameplay.
-* **NFT Pass:** Auto-mints once a player reaches level 5, unlocking premium levels.
-* **Anti-Cheat Logic:** Progress submission verified on-chain.
+| Name | Role | Description |
+|------|------|--------------|
+| Emmanuel Ogbu | Smart Contract Developer | Clarity contracts & blockchain logic |
+| [Team Member 2] | Frontend Developer | Game interface & animations |
+| [Team Member 3] | Game Designer | Maze design & user flow |
+| [Team Member 4] | Project Manager | Coordination & testing |
 
 ---
 
-## 🔐 Security & Access
-
-* Only the **MazeGame** contract can mint NFTs.
-* XP token transfers are validated before gameplay continuation.
-* Sensitive operations use Clarity’s `as-contract` for safety.
-
----
-
-## 🤝 Contributing
-
-We welcome community contributions!
-
-**Steps to Contribute:**
-
-1. Fork the repo
-2. Create a feature branch
-
-   ```bash
-   git checkout -b feat/add-nft-ui
-   ```
-3. Commit and push changes
-
-   ```bash
-   git commit -m "feat: added NFT mint button"
-   git push origin feat/add-nft-ui
-   ```
-4. Submit a Pull Request
-
-Check `/docs/CONTRIBUTING.md` for team conventions.
-
----
-
-## 🗺️ Roadmap (v1 → v2)
-
-| Phase | Focus                               |
-| ----- | ----------------------------------- |
-| v1.0  | Core Maze Logic + XP Token          |
-| v1.1  | NFT Pass Integration                |
-| v1.2  | UI Enhancements & Leaderboard       |
-| v2.0  | Multiplayer + On-chain Achievements |
-
----
-
-## 🪙 License
+## 📄 License
 
 This project is licensed under the **MIT License**.
-Feel free to use, modify, and build upon it.
 
 ---
 
-### 🌐 Links
+## 🌐 Links
+- [Stacks Blockchain](https://stacks.co)
+- [Clarity Language Docs](https://docs.stacks.co/write-smart-contracts)
+- [Clarinet CLI](https://github.com/hirosystems/clarinet)
+- [Stacks.js SDK](https://github.com/hirosystems/stacks.js)
 
-* [Stacks Documentation](https://docs.stacks.co)
-* [Clarinet Docs](https://docs.hiro.so/clarinet)
-* [Stacks.js Library](https://docs.hiro.so/build-apps/stackjs)
+---
 
-```
+**StacksRunner** — Play, Earn, and Level Up On-Chain 🎮
