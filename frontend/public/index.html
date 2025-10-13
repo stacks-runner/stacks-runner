@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="StackRunner - A fast-paced, blockchain-powered maze challenge built for Stacks">
+    <meta name="keywords" content="blockchain, game, stacks, maze, crypto, leaderboard">
+    <meta name="author" content="StackRunner Team">
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StackRunner">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="StackRunner - Blockchain Maze Challenge">
+    <meta property="og:description" content="Race against time through neon mazes to collect STX tokens. Compete on the blockchain leaderboard!">
+    <meta property="og:url" content="https://stackrunner.game">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃‍♂️</text></svg>">
+    
+    <title>StackRunner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation; /* Prevents zoom on double-tap */
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            /* background: linear-gradient(135deg, #0A0A1A 0%, #001122 50%, #002244 100%); */
+            color: #00CCFF;
+            overflow: hidden;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #game-container {
+            /* position: relative; */
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            #game-container {
+                padding-top: 60px;
+            }
+            
+            #ui-overlay {
+                width: 95% !important;
+                font-size: 14px !important;
+                top: 10px !important;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .ui-element {
+                padding: 6px 12px !important;
+                min-width: 70px !important;
+                font-size: 12px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #game-container {
+                padding-top: 50px;
+            }
+            
+            #ui-overlay {
+                font-size: 12px !important;
+                gap: 3px;
+            }
+            
+            .ui-element {
+                padding: 4px 8px !important;
+                min-width: 60px !important;
+                font-size: 11px !important;
+            }
+        }
+
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-text {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #00CCFF;
+            text-shadow: 0 0 10px #00CCFF;
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #00CCFF, #FFAA00);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            font-size: 18px;
+            color: #00CCFF;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .ui-element {
+            padding: 10px 20px;
+            background: rgba(0, 10, 26, 0.8);
+            border-radius: 5px;
+            border: 1px solid #00CCFF;
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
+            text-align: center;
+            min-width: 120px;
+        }
+
+        #wallet-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .wallet-button {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #00CCFF, #FFAA00);
+            border: none;
+            border-radius: 5px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            box-shadow: 0 0 15px rgba(0, 204, 255, 0.5);
+        }
+
+        .wallet-button:hover {
+            transform: scale(1.05);
+        }
+
+        .wallet-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+        }
+
+        .game-over-title {
+            font-size: 48px;
+            color: #ff4444;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff4444;
+        }
+
+        .final-score {
+            font-size: 24px;
+            color: #00ff88;
+            margin-bottom: 30px;
+        }
+
+        .restart-button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .restart-button:hover {
+            transform: scale(1.1);
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+        }
+
+        .desktop-controls {
+            display: inline;
+        }
+
+        .mobile-controls {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-controls {
+                display: none;
+            }
+            
+            .mobile-controls {
+                display: inline;
+            }
+            
+            #instructions {
+                font-size: 12px;
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loading-text">Loading StackRunner...</div>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loading-progress"></div>
+            </div>
+        </div>
+
+        <!-- UI Overlay -->
+        <div id="ui-overlay">
+            <div class="ui-element">
+                <div>Score: <span id="score">0</span></div>
+            </div>
+            <div class="ui-element">
+                <div>Level: <span id="level">1</span></div>
+            </div>
+            <div class="ui-element">
+                <div>Time: <span id="timer">30</span>s</div>
+            </div>
+        </div>
+
+        <!-- Wallet Status -->
+        <!-- <div id="wallet-status">
+            <button id="wallet-button" class="wallet-button">Connect Wallet</button>
+            <div id="wallet-address" style="display: none; margin-top: 10px; font-size: 12px;"></div>
+        </div> -->
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen">
+            <div class="game-over-title">Game Over!</div>
+            <div class="final-score">Final Score: <span id="final-score">0</span></div>
+            <div style="margin-bottom: 20px; color: #888;">
+                <div id="submission-status">Submitting score to blockchain...</div>
+            </div>
+            <button id="restart-button" class="restart-button">Play Again</button>
+        </div>
+
+        <!-- Instructions -->
+        <!-- <div id="instructions">
+            <span class="desktop-controls">Use WASD or Arrow Keys to move</span>
+            <span class="mobile-controls">Swipe to move • Tap to pause</span>
+            • Collect the STX token before time runs out!
+        </div> -->
+    </div>
+
+    <!-- Phaser.js -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    
+    <!-- Stacks.js -->
+    <script src="https://unpkg.com/@stacks/connect@7.4.0/dist/connect.js"></script>
+    <script src="https://unpkg.com/@stacks/transactions@6.5.4/dist/transactions.js"></script>
+    <script src="https://unpkg.com/@stacks/network@6.5.4/dist/network.js"></script>
+
+    <!-- Game Scripts -->
+    <script src="src/config.js"></script>
+    <script src="src/blockchain/stacksAPI.js"></script>
+    <script src="src/blockchain/contractCalls.js"></script>
+    <script src="src/utils/mazeGenerator.js"></script>
+    <script src="src/utils/collisions.js"></script>
+    <script src="src/scenes/BootScene.js"></script>
+    <script src="src/scenes/GameScene.js"></script>
+    <script src="src/scenes/UIScene.js"></script>
+    <script src="src/main.js"></script>
+</body>
+</html>
