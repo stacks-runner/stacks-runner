@@ -14,9 +14,9 @@ class BootScene extends Phaser.Scene {
 
         this.load.on('complete', () => {
             this.updateLoadingBar(1);
-            // Small delay before starting the game
+            // Small delay before starting the title scene
             this.time.delayedCall(500, () => {
-                this.scene.start('GameScene');
+                this.scene.start('TitleScene');
                 this.hideLoadingScreen();
             });
         });

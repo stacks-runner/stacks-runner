@@ -13,7 +13,8 @@ class StackRunnerGame {
             height: CONFIG.CANVAS_HEIGHT,
             parent: 'game-container',
             backgroundColor: CONFIG.COLORS.BACKGROUND,
-            scene: [BootScene, GameScene, UIScene],
+            // 
+            scene: [BootScene, TitleScene, ConnectWalletScene, MazeCreationScene, GameScene, UIScene],
             physics: {
                 default: 'arcade',
                 arcade: {
@@ -34,8 +35,8 @@ class StackRunnerGame {
                 }
             },
             render: {
-                antialias: false,
-                pixelArt: true
+                antialias: true,
+                pixelArt: false
             },
             input: {
                 touch: true,
