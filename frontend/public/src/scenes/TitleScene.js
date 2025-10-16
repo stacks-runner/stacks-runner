@@ -14,9 +14,11 @@ class TitleScene extends Phaser.Scene {
         
         // UI overlay is hidden by default, no need to hide it here
         
-        // Calculate center positions
-        const centerX = CONFIG.CANVAS_WIDTH / 2;
-        const centerY = CONFIG.CANVAS_HEIGHT / 2;
+        // Use actual canvas dimensions for responsive positioning
+        const canvasWidth = this.cameras.main.width;
+        const canvasHeight = this.cameras.main.height;
+        const centerX = canvasWidth / 2;
+        const centerY = canvasHeight / 2;
         
         // Responsive positioning and scaling
         const isMobile = window.innerWidth <= 768;
@@ -205,6 +207,12 @@ class TitleScene extends Phaser.Scene {
     }
     
     goToMazeCreation() {
+        // Immediately remove title overlay to prevent it from showing in other scenes
+        const titleOverlay = document.getElementById('title-overlay');
+        if (titleOverlay) {
+            titleOverlay.remove();
+        }
+        
         // Add exit animation before transitioning
         this.tweens.add({
             targets: this.logo,
@@ -212,47 +220,41 @@ class TitleScene extends Phaser.Scene {
             duration: 500,
             ease: 'Power2.easeIn',
             onComplete: () => {
-                // Remove title overlay
-                const titleOverlay = document.getElementById('title-overlay');
-                if (titleOverlay) {
-                    titleOverlay.remove();
-                }
-                
-                // Transition to connect wallet scene (UI overlay stays hidden for menu scenes)
+                // Transition to connect wallet scene
                 this.scene.start('ConnectWalletScene');
             }
         });
-        
-        // Fade out DOM text elements
-        if (this.titleText) this.titleText.style.opacity = '0';
-        if (this.taglineText) this.taglineText.style.opacity = '0';
-        if (this.clickText) this.clickText.style.opacity = '0';
     }
 
     setupResponsiveLayout() {
-        // Handle window resize events
+        // Handle window resize events - only if we're still in TitleScene
         window.addEventListener('resize', () => {
-            // Remove existing overlay
-            const existingOverlay = document.getElementById('title-overlay');
-            if (existingOverlay) {
-                existingOverlay.remove();
-            }
-            
-            // Recreate text overlay with new responsive values
-            this.createTextOverlay();
-            
-            // Update logo positioning
-            const centerX = CONFIG.CANVAS_WIDTH / 2;
-            const centerY = CONFIG.CANVAS_HEIGHT / 2;
-            const isMobile = window.innerWidth <= 768;
-            const isSmallMobile = window.innerWidth <= 480;
-            
-            const logoOffsetY = isSmallMobile ? -centerY * 0.45 : isMobile ? -centerY * 0.5 : -120;
-            const logoScale = isSmallMobile ? 0.12 : isMobile ? 0.15 : 0.2;
-            
-            if (this.logo) {
-                this.logo.setPosition(centerX, centerY + logoOffsetY);
-                this.logo.setScale(logoScale);
+            // Only recreate overlay if we're still in the TitleScene
+            if (this.scene.isActive('TitleScene')) {
+                // Remove existing overlay
+                const existingOverlay = document.getElementById('title-overlay');
+                if (existingOverlay) {
+                    existingOverlay.remove();
+                }
+                
+                // Recreate text overlay with new responsive values
+                this.createTextOverlay();
+                
+                // Update logo positioning using actual canvas dimensions
+                const canvasWidth = this.cameras.main.width;
+                const canvasHeight = this.cameras.main.height;
+                const centerX = canvasWidth / 2;
+                const centerY = canvasHeight / 2;
+                const isMobile = window.innerWidth <= 768;
+                const isSmallMobile = window.innerWidth <= 480;
+                
+                const logoOffsetY = isSmallMobile ? -centerY * 0.7 : isMobile ? -centerY * 0.9 : -100;
+                const logoScale = isSmallMobile ? 0.12 : isMobile ? 0.15 : 0.2;
+                
+                if (this.logo) {
+                    this.logo.setPosition(centerX, centerY + logoOffsetY);
+                    this.logo.setScale(logoScale);
+                }
             }
         });
     }

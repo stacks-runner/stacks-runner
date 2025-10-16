@@ -35,8 +35,6 @@ class BootScene extends Phaser.Scene {
         if (window.stacksAPI) {
             window.stacksAPI.initialize();
         }
-
-        console.log('BootScene: Assets loaded successfully');
     }
 
     createColorTextures() {

@@ -13,7 +13,11 @@ class ConnectWalletScene extends Phaser.Scene {
         // Set solid black background
         this.cameras.main.setBackgroundColor('#000000');
         
-        // UI overlay is hidden by default, no need to hide it here
+        // Clean up any lingering title overlay from previous scene
+        const titleOverlay = document.getElementById('title-overlay');
+        if (titleOverlay) {
+            titleOverlay.remove();
+        }
         
         // Calculate center positions
         const centerX = CONFIG.CANVAS_WIDTH / 2;

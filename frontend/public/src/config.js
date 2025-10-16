@@ -5,8 +5,8 @@ const CONFIG = {
     CANVAS_HEIGHT: 600,
     
     // Maze settings
-    MAZE_WIDTH: 35,    // Wider maze (was 25)
-    MAZE_HEIGHT: 20,   // Taller maze (was 12)
+    MAZE_WIDTH: 180,    // Wider maze (was 25)
+    MAZE_HEIGHT: 120,   // Taller maze (was 12)
     CELL_SIZE: 17,     // Same cell size
     
     // Player settings
@@ -20,8 +20,8 @@ const CONFIG = {
     MINI_STX_TIME_BONUS: 3,
     
     // Scoring
-    MAIN_STX_POINTS: 10,
-    MINI_STX_POINTS: 5,
+    MAIN_STX_POINTS: 5,
+    MINI_STX_POINTS: 2,
     TIME_BONUS_MULTIPLIER: 1,
     
     // Cyberpunk Colors
