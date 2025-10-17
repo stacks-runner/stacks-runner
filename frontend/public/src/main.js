@@ -7,13 +7,18 @@ class StackRunnerGame {
 
     init() {
         // Phaser game configuration
+        const isMobile = window.innerWidth <= 768;
+        const canvasWidth = isMobile ? window.innerWidth : CONFIG.CANVAS_WIDTH;
+        const canvasHeight = isMobile ? window.innerHeight : CONFIG.CANVAS_HEIGHT;
+        
         const config = {
             type: Phaser.AUTO,
-            width: CONFIG.CANVAS_WIDTH,
-            height: CONFIG.CANVAS_HEIGHT,
+            width: canvasWidth,
+            height: canvasHeight,
             parent: 'game-container',
             backgroundColor: CONFIG.COLORS.BACKGROUND,
-            scene: [BootScene, GameScene, UIScene],
+            //  
+            scene: [BootScene, TitleScene, ConnectWalletScene, MazeCreationScene, GameScene, UIScene],
             physics: {
                 default: 'arcade',
                 arcade: {
@@ -34,8 +39,8 @@ class StackRunnerGame {
                 }
             },
             render: {
-                antialias: false,
-                pixelArt: true
+                antialias: true,
+                pixelArt: false
             },
             input: {
                 touch: true,

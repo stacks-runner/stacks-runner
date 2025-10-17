@@ -14,9 +14,9 @@ class BootScene extends Phaser.Scene {
 
         this.load.on('complete', () => {
             this.updateLoadingBar(1);
-            // Small delay before starting the game
+            // Small delay before starting the title scene
             this.time.delayedCall(500, () => {
-                this.scene.start('GameScene');
+                this.scene.start('TitleScene');
                 this.hideLoadingScreen();
             });
         });
@@ -35,8 +35,6 @@ class BootScene extends Phaser.Scene {
         if (window.stacksAPI) {
             window.stacksAPI.initialize();
         }
-
-        console.log('BootScene: Assets loaded successfully');
     }
 
     createColorTextures() {

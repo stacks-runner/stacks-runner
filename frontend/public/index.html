@@ -34,8 +34,8 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            /* background: linear-gradient(135deg, #0A0A1A 0%, #001122 50%, #002244 100%); */
-            color: #00CCFF;
+            background-color: #000000;
+            color: #FFFFFF;
             overflow: hidden;
             -webkit-touch-callout: none;
             -webkit-user-select: none;
@@ -52,7 +52,7 @@
         /* Mobile-specific styles */
         @media (max-width: 768px) {
             #game-container {
-                padding-top: 60px;
+                padding-top: 0px; /* Remove padding to maximize maze space */
             }
             
             #ui-overlay {
@@ -72,7 +72,7 @@
 
         @media (max-width: 480px) {
             #game-container {
-                padding-top: 50px;
+                padding-top: 0px; /* Remove padding to maximize maze space */
             }
             
             #ui-overlay {
@@ -87,7 +87,7 @@
             }
         }
 
-        #loading-screen {
+        /* #loading-screen {
             position: absolute;
             top: 0;
             left: 0;
@@ -121,7 +121,7 @@
             background: linear-gradient(90deg, #00CCFF, #FFAA00);
             width: 0%;
             transition: width 0.3s ease;
-        }
+        } */
 
         #ui-overlay {
             position: absolute;
@@ -134,16 +134,17 @@
             align-items: center;
             z-index: 100;
             font-size: 18px;
-            color: #00CCFF;
+            color: #FFFFFF;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
         }
 
         .ui-element {
             padding: 10px 20px;
-            background: rgba(0, 10, 26, 0.8);
+            background: rgba(139, 92, 246, 0.2);
             border-radius: 5px;
-            border: 1px solid #00CCFF;
-            box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
+            border: 1px solid #8B5CF6;
+            color: #8B5CF6;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
             text-align: center;
             min-width: 120px;
         }
@@ -200,14 +201,14 @@
 
         .final-score {
             font-size: 24px;
-            color: #00ff88;
+            color: #FFFFFF;
             margin-bottom: 30px;
         }
 
         .restart-button {
             padding: 15px 30px;
             font-size: 20px;
-            background: linear-gradient(45deg, #00ff88, #00ccff);
+            background-color: #8B5CF6;
             border: none;
             border-radius: 10px;
             color: #000;
@@ -257,15 +258,15 @@
 <body>
     <div id="game-container">
         <!-- Loading Screen -->
-        <div id="loading-screen">
+        <!-- <div id="loading-screen">
             <div class="loading-text">Loading StackRunner...</div>
             <div class="loading-bar">
                 <div class="loading-progress" id="loading-progress"></div>
             </div>
-        </div>
+        </div> -->
 
-        <!-- UI Overlay -->
-        <div id="ui-overlay">
+        <!-- UI Overlay - Hidden by default, only shown during GameScene -->
+        <div id="ui-overlay" style="display: none;">
             <div class="ui-element">
                 <div>Score: <span id="score">0</span></div>
             </div>
@@ -273,7 +274,7 @@
                 <div>Level: <span id="level">1</span></div>
             </div>
             <div class="ui-element">
-                <div>Time: <span id="timer">30</span>s</div>
+                <div>Time: <span id="timer">30</span></div>
             </div>
         </div>
 
@@ -311,10 +312,13 @@
 
     <!-- Game Scripts -->
     <script src="src/config.js"></script>
-    <script src="src/blockchain/stacksAPI.js"></script>
-    <script src="src/blockchain/contractCalls.js"></script>
+    <!-- <script src="src/blockchain/stacksAPI.js"></script>
+    <script src="src/blockchain/contractCalls.js"></script> -->
     <script src="src/utils/mazeGenerator.js"></script>
     <script src="src/utils/collisions.js"></script>
+    <script src="src/scenes/TitleScene.js"></script>
+    <script src="src/scenes/ConnectWalletScene.js"></script>
+    <script src="src/scenes/MazeCreationScene.js"></script>
     <script src="src/scenes/BootScene.js"></script>
     <script src="src/scenes/GameScene.js"></script>
     <script src="src/scenes/UIScene.js"></script>
