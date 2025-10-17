@@ -1,8 +1,9 @@
 // Maze generation utility using recursive backtracking algorithm
 class MazeGenerator {
-    constructor(width, height) {
+    constructor(width, height, removeWallsRatio = 0) {
         this.width = width;
         this.height = height;
+        this.removeWallsRatio = removeWallsRatio; // 0 = complex, higher = simpler
         this.grid = [];
         this.initialize();
     }
@@ -48,7 +49,53 @@ class MazeGenerator {
             }
         }
 
+        // For simpler mazes, remove additional walls to create more open paths
+        if (this.removeWallsRatio > 0) {
+            this.removeAdditionalWalls(this.removeWallsRatio);
+        }
+
         return this.grid;
+    }
+
+    removeAdditionalWalls(ratio) {
+        // Remove a percentage of walls to make maze simpler
+        const totalCells = this.width * this.height;
+        const wallsToRemove = Math.floor(totalCells * ratio);
+        
+        for (let i = 0; i < wallsToRemove; i++) {
+            const x = Math.floor(Math.random() * this.width);
+            const y = Math.floor(Math.random() * this.height);
+            const cell = this.grid[y][x];
+            
+            // Try to remove a random wall
+            const walls = ['top', 'right', 'bottom', 'left'];
+            const randomWall = walls[Math.floor(Math.random() * walls.length)];
+            
+            // Remove wall if it exists and has a neighbor
+            if (cell.walls[randomWall]) {
+                const neighbor = this.getNeighborInDirection(cell, randomWall);
+                if (neighbor) {
+                    this.removeWallBetween(cell, neighbor);
+                }
+            }
+        }
+    }
+
+    getNeighborInDirection(cell, direction) {
+        const { x, y } = cell;
+        
+        switch(direction) {
+            case 'top':
+                return y > 0 ? this.grid[y - 1][x] : null;
+            case 'right':
+                return x < this.width - 1 ? this.grid[y][x + 1] : null;
+            case 'bottom':
+                return y < this.height - 1 ? this.grid[y + 1][x] : null;
+            case 'left':
+                return x > 0 ? this.grid[y][x - 1] : null;
+            default:
+                return null;
+        }
     }
 
     getRandomUnvisitedNeighbor(cell) {

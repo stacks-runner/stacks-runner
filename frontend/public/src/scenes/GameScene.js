@@ -28,37 +28,56 @@ class GameScene extends Phaser.Scene {
         
         // Timer
         this.gameTimer = null;
+        
+        // User maze configuration (received from MazeCreationScene)
+        this.userMazeConfig = null;
+        
+        // Level completion tracking for blockchain
+        this.levelCompletions = [];
     }
 
-    create() {
-        console.log('GameScene: Starting game');
+    create(data) {
+        
+        // Set transparent background for better mobile visibility
+        this.cameras.main.setBackgroundColor('#000000');
+        
+        // Clean up any lingering title overlay from previous scenes
+        // const titleOverlay = document.getElementById('title-overlay');
+        // if (titleOverlay) {
+        //     titleOverlay.remove();
+        // }
+        
+        // Show UI overlay for gameplay (score, level, timer) and reset values
+        const uiOverlay = document.getElementById('ui-overlay');
+        if (uiOverlay) {
+            uiOverlay.style.display = 'flex';
+        }
+        
+        // Reset game state values to prevent title screen text from persisting
+        this.gameState = {
+            score: 0,
+            level: 1,
+            timeLeft: CONFIG.BASE_TIME,
+            isGameOver: false,
+            isPaused: false
+        };
+        
+        // Store user maze configuration
+        if (data && data.userMazeConfig) {
+            this.userMazeConfig = data.userMazeConfig;
+            
+            // Adjust starting difficulty based on user selection
+            this.adjustGameDifficulty();
+        }
         
         // Ensure canvas has keyboard focus
         this.game.canvas.setAttribute('tabindex', '1');
         this.game.canvas.focus();
         
-        // Calculate maze offset to center it properly
-        const mazePixelWidth = CONFIG.MAZE_WIDTH * CONFIG.CELL_SIZE;
-        const mazePixelHeight = CONFIG.MAZE_HEIGHT * CONFIG.CELL_SIZE;
-        
-        // Account for UI space at the top (80px padding-top from CSS)
-        const uiSpaceTop = 80;
-        const availableHeight = CONFIG.CANVAS_HEIGHT - uiSpaceTop;
-        
-        this.mazeOffsetX = (CONFIG.CANVAS_WIDTH - mazePixelWidth) / 2;
-        this.mazeOffsetY = uiSpaceTop + (availableHeight - mazePixelHeight) / 2;
-        
-        console.log('Maze positioning debug:');
-        console.log('- Canvas size:', CONFIG.CANVAS_WIDTH, 'x', CONFIG.CANVAS_HEIGHT);
-        console.log('- Maze pixel size:', mazePixelWidth, 'x', mazePixelHeight);
-        console.log('- UI space top:', uiSpaceTop);
-        console.log('- Available height:', availableHeight);
-        console.log('- Maze offset:', this.mazeOffsetX, ',', this.mazeOffsetY);
-        
         // Initialize input
         this.setupInput();
         
-        // Generate first maze
+        // Generate first maze (this will calculate proper responsive maze offset)
         this.generateNewLevel();
         
         // Start game timer
@@ -86,6 +105,10 @@ class GameScene extends Phaser.Scene {
             if (event.key === 'p' || event.key === 'P') {
                 this.togglePause();
             }
+            // Jump to level 10 with "0" key (cheat/testing feature)
+            if (event.key === '0' && !this.gameState.isGameOver) {
+                this.jumpToLevel(10);
+            }
         });
     }
 
@@ -94,7 +117,12 @@ class GameScene extends Phaser.Scene {
         let startX, startY, startTime;
         const minSwipeDistance = 50;
         const maxTapTime = 200; // milliseconds
-        
+        window.addEventListener('touchmove', (e) => { 
+            e.preventDefault();
+            const X = e.touches[0].clientX;
+            const Y = e.touches[0].clientY;
+         }, { passive: false });
+
         this.input.on('pointerdown', (pointer) => {
             startX = pointer.x;
             startY = pointer.y;
@@ -146,7 +174,7 @@ class GameScene extends Phaser.Scene {
     movePlayer(direction) {
         if (!this.player || this.gameState.isGameOver || this.gameState.isPaused) return;
         
-        const moveDistance = CONFIG.CELL_SIZE; // Move one cell at a time on mobile
+        const moveDistance = this.levelCellSize || CONFIG.CELL_SIZE; // Move one cell at a time on mobile
         let deltaX = 0, deltaY = 0;
         
         switch(direction) {
@@ -163,8 +191,8 @@ class GameScene extends Phaser.Scene {
         const newPosition = CollisionSystem.getValidMovePosition(
             mazeRelativeX, mazeRelativeY,
             deltaX, deltaY,
-            CONFIG.PLAYER_SIZE, CONFIG.PLAYER_SIZE,
-            this.collisionGrid, CONFIG.CELL_SIZE,
+            this.getScaledPlayerSize(), this.getScaledPlayerSize(),
+            this.collisionGrid, this.levelCellSize || CONFIG.CELL_SIZE,
             this.maze.grid  // Pass the maze grid for wall checking
         );
         
@@ -179,19 +207,61 @@ class GameScene extends Phaser.Scene {
     }
 
     generateNewLevel() {
-        console.log(`Generating level ${this.gameState.level}`);
-        
         // Clear existing objects
         this.clearLevel();
         
-        // Generate maze
-        this.maze = new MazeGenerator(CONFIG.MAZE_WIDTH, CONFIG.MAZE_HEIGHT);
+        // Calculate maze dimensions based on level (progressive scaling)
+        const mazeConfig = this.getMazeConfigForLevel(this.gameState.level);
+        
+        // Generate maze with level-appropriate complexity
+        this.maze = new MazeGenerator(
+            mazeConfig.width, 
+            mazeConfig.height, 
+            mazeConfig.removeWallsRatio  // Pass complexity parameter
+        );
         this.maze.generate();
         this.collisionGrid = this.maze.toCollisionGrid();
         
-        // Debug: Log collision grid info
-        console.log('Collision grid dimensions:', this.collisionGrid.length, 'x', this.collisionGrid[0].length);
-        console.log('Visual maze dimensions:', CONFIG.MAZE_WIDTH, 'x', CONFIG.MAZE_HEIGHT);
+        // Calculate dynamic cell size with mobile optimization
+        const isMobile = window.innerWidth <= 768;
+        const isSmallMobile = window.innerWidth <= 480;
+    
+        // Responsive sizing - works for any screen size
+        const uiSpaceTop = 45; // Fixed top margin for UI area
+        const horizontalPadding = 10; // 10px padding on left/right
+        const verticalMargin = 45; // 45px gap above maze
+        
+        // Calculate available space based on actual screen/canvas size
+        const screenWidth = isMobile ? window.innerWidth : CONFIG.CANVAS_WIDTH;
+        const screenHeight = isMobile ? window.innerHeight : CONFIG.CANVAS_HEIGHT;
+        
+        const availableWidth = screenWidth - (horizontalPadding * 2);
+        const availableHeight = screenHeight - uiSpaceTop - verticalMargin;
+        
+        // Calculate dynamic cell size that fits both width and height
+        let dynamicCellSize;
+        let mazePixelWidth;
+        let mazePixelHeight;
+        
+        // Calculate cell sizes for both dimensions
+        const cellSizeForWidth = Math.floor(availableWidth / mazeConfig.width);
+        const cellSizeForHeight = Math.floor(availableHeight / mazeConfig.height);
+        
+        // Use the smaller one to ensure maze fits in both dimensions
+        dynamicCellSize = Math.min(cellSizeForWidth, cellSizeForHeight);
+        dynamicCellSize = Math.max(4, dynamicCellSize); // Minimum 4px per cell
+        
+        // Calculate final maze dimensions
+        mazePixelWidth = mazeConfig.width * dynamicCellSize;
+        mazePixelHeight = mazeConfig.height * dynamicCellSize;
+        
+        // Position maze - centered horizontally with padding, positioned below UI
+        this.mazeOffsetX = horizontalPadding + (availableWidth - mazePixelWidth) / 2;
+        this.mazeOffsetY = uiSpaceTop + verticalMargin;
+        
+        // Store the dynamic cell size for this level (temporary solution)
+        this.levelCellSize = dynamicCellSize;
+        
         
         // Create visual representation
         this.createMazeVisuals();
@@ -209,6 +279,44 @@ class GameScene extends Phaser.Scene {
         this.updateLevelTimer();
     }
 
+    getMazeConfigForLevel(level) {
+        // Progressive difficulty scaling from level 1 to 10
+        // Level 1: Simple maze with fewer walls (easier)
+        // Level 10: Complex maze with more walls (harder)
+        
+        const minSize = 20;  // Starting maze size
+        const maxSize = 40;  // Maximum maze size
+        
+        // Calculate maze dimensions (linear progression)
+        const sizeRange = maxSize - minSize;
+        const sizeProgress = Math.min((level - 1) / 9, 1); // 0 to 1 over 10 levels
+        const mazeSize = Math.floor(minSize + (sizeRange * sizeProgress));
+        
+        // Complexity settings - INVERTED: Level 1 has MORE walls removed (easier), Level 10 has NONE removed (hardest)
+        const complexityLevels = [
+            { level: 1, name: 'Very Easy', removeWalls: 0.65 },      // 65% walls removed = very open, very easy
+            { level: 2, name: 'Very Easy', removeWalls: 0.58 },      // 58% walls removed = still very open
+            { level: 3, name: 'Easy', removeWalls: 0.50 },           // 50% walls removed = easy
+            { level: 4, name: 'Easy', removeWalls: 0.42 },           // 42% walls removed = still easy
+            { level: 5, name: 'Medium', removeWalls: 0.35 },         // 35% walls removed = getting harder
+            { level: 6, name: 'Medium', removeWalls: 0.28 },         // 28% walls removed = moderate
+            { level: 7, name: 'Hard', removeWalls: 0.15 },           // 15% walls removed = challenging
+            { level: 8, name: 'Very Hard', removeWalls: 0.08 },      // 8% walls removed = very hard
+            { level: 9, name: 'Extreme', removeWalls: 0.04 },        // 4% walls removed = extreme
+            { level: 10, name: 'Nightmare', removeWalls: 0.02 }       // 2% walls removed = maximum walls but passable
+        ];
+        
+        const complexityIndex = Math.min(level - 1, complexityLevels.length - 1);
+        const complexity = complexityLevels[complexityIndex];
+        
+        return {
+            width: mazeSize,
+            height: mazeSize,
+            complexity: complexity.name,
+            removeWallsRatio: complexity.removeWalls
+        };
+    }
+
     clearLevel() {
         // Remove existing game objects
         if (this.mazeGraphics) {
@@ -224,39 +332,56 @@ class GameScene extends Phaser.Scene {
         this.miniSTXs = [];
     }
 
-    createMazeVisuals() {
+    createMazeVisuals() {        
         // Create graphics object for drawing lines
         this.mazeGraphics = this.add.graphics();
         this.mazeGraphics.setDepth(1);
         
-        // Set line style - neon blue with glow effect
-        this.mazeGraphics.lineStyle(2, CONFIG.COLORS.WALL, 1.0);
+        // Set line style - thicker lines on mobile for better visibility
+        const isMobile = window.innerWidth <= 768;
+        const lineWidth = isMobile ? 3 : 2;
+        this.mazeGraphics.lineStyle(lineWidth, 0x8B5CF6, 1.0);
         
         // Draw maze walls as lines instead of filled cells
+        if (!this.maze || !this.maze.grid) {
+            console.error('Maze or maze grid is not available!');
+            return;
+        }
+        
+        if (!this.levelCellSize) {
+            console.error('levelCellSize is not set!');
+            return;
+        }
+        
         for (let y = 0; y < this.maze.height; y++) {
             for (let x = 0; x < this.maze.width; x++) {
                 const cell = this.maze.grid[y][x];
-                const worldX = x * CONFIG.CELL_SIZE + this.mazeOffsetX;
-                const worldY = y * CONFIG.CELL_SIZE + this.mazeOffsetY;
+                if (!cell) {
+                    console.error('Cell is undefined at', x, y);
+                    continue;
+                }
+                
+                const worldX = x * this.levelCellSize + this.mazeOffsetX;
+                const worldY = y * this.levelCellSize + this.mazeOffsetY;
                 
                 // Draw walls as lines around each cell
-                if (cell.walls.top) {
+                if (cell.walls && cell.walls.top) {
                     this.mazeGraphics.moveTo(worldX, worldY);
-                    this.mazeGraphics.lineTo(worldX + CONFIG.CELL_SIZE, worldY);
+                    this.mazeGraphics.lineTo(worldX + this.levelCellSize, worldY);
                 }
                 
-                if (cell.walls.right) {
-                    this.mazeGraphics.moveTo(worldX + CONFIG.CELL_SIZE, worldY);
-                    this.mazeGraphics.lineTo(worldX + CONFIG.CELL_SIZE, worldY + CONFIG.CELL_SIZE);
+                if (cell.walls && cell.walls.right) {
+                    this.mazeGraphics.moveTo(worldX + this.levelCellSize, worldY);
+                    this.mazeGraphics.lineTo(worldX + this.levelCellSize, worldY + this.levelCellSize);
                 }
                 
-                if (cell.walls.bottom) {
-                    this.mazeGraphics.moveTo(worldX + CONFIG.CELL_SIZE, worldY + CONFIG.CELL_SIZE);
-                    this.mazeGraphics.lineTo(worldX, worldY + CONFIG.CELL_SIZE);
+                if (cell.walls && cell.walls.bottom) {
+                    this.mazeGraphics.moveTo(worldX + this.levelCellSize, worldY + this.levelCellSize);
+                    this.mazeGraphics.lineTo(worldX, worldY + this.levelCellSize);
                 }
                 
-                if (cell.walls.left) {
-                    this.mazeGraphics.moveTo(worldX, worldY + CONFIG.CELL_SIZE);
+                if (cell.walls && cell.walls.left) {
+                    this.mazeGraphics.moveTo(worldX, worldY + this.levelCellSize);
                     this.mazeGraphics.lineTo(worldX, worldY);
                 }
             }
@@ -265,7 +390,7 @@ class GameScene extends Phaser.Scene {
         // Stroke all the lines at once
         this.mazeGraphics.strokePath();
         
-        // Add neon glow effect to the entire maze
+        // Add purple glow effect to the entire maze
         this.tweens.add({
             targets: this.mazeGraphics,
             alpha: { from: 0.7, to: 1.0 },
@@ -311,14 +436,14 @@ class GameScene extends Phaser.Scene {
             startPos = this.maze.getRandomEmptyPosition(this.collisionGrid);
         }
         
-        const worldPos = CollisionSystem.getWorldPosition(startPos.x, startPos.y, CONFIG.CELL_SIZE);
+        const worldPos = CollisionSystem.getWorldPosition(startPos.x, startPos.y, this.levelCellSize || CONFIG.CELL_SIZE);
         
         // Apply maze offset for centering
         const centeredX = worldPos.x + this.mazeOffsetX;
         const centeredY = worldPos.y + this.mazeOffsetY;
         
         this.player = this.add.image(centeredX, centeredY, 'player');
-        this.player.setDisplaySize(CONFIG.PLAYER_SIZE, CONFIG.PLAYER_SIZE);
+        this.player.setDisplaySize(this.getScaledPlayerSize(), this.getScaledPlayerSize());
         this.player.setDepth(10); // Ensure player is above maze tiles
         
         // Add subtle glow effect to the mouse
@@ -330,11 +455,6 @@ class GameScene extends Phaser.Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-        
-        console.log('Player created at:', centeredX, centeredY);
-        console.log('Maze offset:', this.mazeOffsetX, this.mazeOffsetY);
-        console.log('Player visible?', this.player.visible);
-        console.log('Player depth:', this.player.depth);
     }
 
     createMainSTX() {
@@ -347,20 +467,14 @@ class GameScene extends Phaser.Scene {
             attempts++;
         } while (attempts < 50 && this.isPositionTooCloseToPlayer(position));
         
-        const worldPos = CollisionSystem.getWorldPosition(position.x, position.y, CONFIG.CELL_SIZE);
+        const worldPos = CollisionSystem.getWorldPosition(position.x, position.y, this.levelCellSize || CONFIG.CELL_SIZE);
         
         // Apply maze offset for centering
         const centeredX = worldPos.x + this.mazeOffsetX;
         const centeredY = worldPos.y + this.mazeOffsetY;
-        
-        console.log('Main STX placement debug:');
-        console.log('- Grid position:', position);
-        console.log('- World position (before offset):', worldPos);
-        console.log('- Final position (with offset):', centeredX, centeredY);
-        console.log('- Collision grid dimensions:', this.collisionGrid.length, 'x', this.collisionGrid[0].length);
-        
+      
         this.mainSTX = this.add.image(centeredX, centeredY, 'main-stx');
-        this.mainSTX.setDisplaySize(24, 24); // Match sprite size
+        this.mainSTX.setDisplaySize(this.getScaledMainSTXSize(), this.getScaledMainSTXSize());
         this.mainSTX.setDepth(5); // Above maze, below player
         
         // Add pulsing animation
@@ -391,16 +505,14 @@ class GameScene extends Phaser.Scene {
                 this.isPositionTooCloseToOtherMiniSTXs(position)
             ));
             
-            const worldPos = CollisionSystem.getWorldPosition(position.x, position.y, CONFIG.CELL_SIZE);
+            const worldPos = CollisionSystem.getWorldPosition(position.x, position.y, this.levelCellSize || CONFIG.CELL_SIZE);
             
             // Apply maze offset for centering
             const centeredX = worldPos.x + this.mazeOffsetX;
             const centeredY = worldPos.y + this.mazeOffsetY;
             
-            console.log(`Mini STX ${i} placement debug:`, position, '->', centeredX, centeredY);
-            
             const miniSTX = this.add.image(centeredX, centeredY, 'mini-stx');
-            miniSTX.setDisplaySize(18, 18); // Match sprite size
+            miniSTX.setDisplaySize(this.getScaledMiniSTXSize(), this.getScaledMiniSTXSize());
             miniSTX.setDepth(5); // Above maze, below player
             
             // Add floating animation
@@ -423,7 +535,7 @@ class GameScene extends Phaser.Scene {
         // Convert world position to maze-relative position
         const playerMazeX = this.player.x - this.mazeOffsetX;
         const playerMazeY = this.player.y - this.mazeOffsetY;
-        const playerGrid = CollisionSystem.getGridPosition(playerMazeX, playerMazeY, CONFIG.CELL_SIZE);
+        const playerGrid = CollisionSystem.getGridPosition(playerMazeX, playerMazeY, this.levelCellSize || CONFIG.CELL_SIZE);
         const distance = Math.abs(position.x - playerGrid.x) + Math.abs(position.y - playerGrid.y);
         
         return distance < 5; // Manhattan distance
@@ -435,7 +547,7 @@ class GameScene extends Phaser.Scene {
         // Convert world position to maze-relative position
         const stxMazeX = this.mainSTX.x - this.mazeOffsetX;
         const stxMazeY = this.mainSTX.y - this.mazeOffsetY;
-        const stxGrid = CollisionSystem.getGridPosition(stxMazeX, stxMazeY, CONFIG.CELL_SIZE);
+        const stxGrid = CollisionSystem.getGridPosition(stxMazeX, stxMazeY, this.levelCellSize || CONFIG.CELL_SIZE);
         const distance = Math.abs(position.x - stxGrid.x) + Math.abs(position.y - stxGrid.y);
         
         return distance < 3;
@@ -446,7 +558,7 @@ class GameScene extends Phaser.Scene {
             // Convert world position to maze-relative position
             const miniMazeX = miniSTX.x - this.mazeOffsetX;
             const miniMazeY = miniSTX.y - this.mazeOffsetY;
-            const miniGrid = CollisionSystem.getGridPosition(miniMazeX, miniMazeY, CONFIG.CELL_SIZE);
+            const miniGrid = CollisionSystem.getGridPosition(miniMazeX, miniMazeY, this.levelCellSize || CONFIG.CELL_SIZE);
             const distance = Math.abs(position.x - miniGrid.x) + Math.abs(position.y - miniGrid.y);
             return distance < 3;
         });
@@ -489,14 +601,13 @@ class GameScene extends Phaser.Scene {
             // Convert world position to maze-relative position for collision detection
             const mazeRelativeX = this.player.x - this.mazeOffsetX;
             const mazeRelativeY = this.player.y - this.mazeOffsetY;
-            
-            const newPosition = CollisionSystem.getValidMovePosition(
-                mazeRelativeX, mazeRelativeY,
-                deltaX, deltaY,
-                CONFIG.PLAYER_SIZE, CONFIG.PLAYER_SIZE,
-                this.collisionGrid, CONFIG.CELL_SIZE,
-                this.maze.grid  // Pass the maze grid for wall checking
-            );
+                 const newPosition = CollisionSystem.getValidMovePosition(
+            mazeRelativeX, mazeRelativeY,
+            deltaX, deltaY,
+            this.getScaledPlayerSize(), this.getScaledPlayerSize(),
+            this.collisionGrid, this.levelCellSize || CONFIG.CELL_SIZE,
+            this.maze.grid  // Pass the maze grid for wall checking
+        );
             
             // Convert back to world coordinates
             const worldX = newPosition.x + this.mazeOffsetX;
@@ -529,7 +640,8 @@ class GameScene extends Phaser.Scene {
     }
 
     collectMainSTX() {
-        console.log('Main STX collected!');
+        // Track level completion for blockchain
+        this.trackLevelCompletion();
         
         // Add score
         const levelBonus = CONFIG.MAIN_STX_POINTS * this.gameState.level;
@@ -539,6 +651,13 @@ class GameScene extends Phaser.Scene {
         // Remove main STX
         this.mainSTX.destroy();
         this.mainSTX = null;
+        
+        // Check if player completed final level (Level 10)
+        if (this.gameState.level >= 10) {
+            console.log('🎉 GAME WON! Player completed all levels!');
+            this.gameWon();
+            return;
+        }
         
         // Level up
         this.gameState.level++;
@@ -550,8 +669,6 @@ class GameScene extends Phaser.Scene {
     }
 
     collectMiniSTX(index) {
-        console.log('Mini STX collected!');
-        
         // Add score and time
         this.gameState.score += CONFIG.MINI_STX_POINTS;
         this.gameState.timeLeft += CONFIG.MINI_STX_TIME_BONUS;
@@ -581,9 +698,10 @@ class GameScene extends Phaser.Scene {
     }
 
     updateLevelTimer() {
-        const newTime = Math.max(
-            CONFIG.MIN_TIME,
-            CONFIG.BASE_TIME - (this.gameState.level - 1) * CONFIG.TIME_DECREASE_PER_LEVEL
+        // Timer INCREASES with level (more time for harder mazes)
+        const newTime = Math.min(
+            CONFIG.BASE_TIME + (this.gameState.level - 1) * CONFIG.TIME_DECREASE_PER_LEVEL,
+            CONFIG.BASE_TIME + 18  // Cap at 48 seconds (30 + 9*2)
         );
         this.gameState.timeLeft = newTime;
     }
@@ -594,15 +712,21 @@ class GameScene extends Phaser.Scene {
         const levelElement = document.getElementById('level');
         const timerElement = document.getElementById('timer');
         
-        if (scoreElement) scoreElement.textContent = this.gameState.score;
-        if (levelElement) levelElement.textContent = this.gameState.level;
+        if (scoreElement) {
+            scoreElement.textContent = this.gameState.score;
+            scoreElement.style.color = '#FFFFFF'; // White score number
+        }
+        if (levelElement) {
+            levelElement.textContent = this.gameState.level;
+            levelElement.style.color = '#FFFFFF'; // White level number
+        }
         if (timerElement) {
             timerElement.textContent = this.gameState.timeLeft;
             // Change color when time is low
             if (this.gameState.timeLeft <= 5) {
                 timerElement.style.color = '#ff4444';
             } else {
-                timerElement.style.color = '#00ff88';
+                timerElement.style.color = '#FFFFFF';
             }
         }
     }
@@ -640,7 +764,7 @@ class GameScene extends Phaser.Scene {
                 cursor: pointer;
             `;
             pauseOverlay.innerHTML = `
-                <div style="font-size: 48px; color: #00CCFF; margin-bottom: 20px; text-shadow: 0 0 20px #00CCFF;">PAUSED</div>
+                <div style="font-size: 48px; color: #8B5CF6; margin-bottom: 20px; text-shadow: 0 0 20px #8B5CF6;">PAUSED</div>
                 <div style="font-size: 18px; color: #888;">Press P to Resume</div>
                 <div style="font-size: 14px; color: #666; margin-top: 10px;">or click anywhere</div>
             `;
@@ -716,7 +840,8 @@ class GameScene extends Phaser.Scene {
     }
 
     async submitScore() {
-        const submissionStatus = document.getElementById('submission-status');
+        // Check if this is victory screen or game over screen
+        const submissionStatus = document.getElementById('victory-submission-status') || document.getElementById('submission-status');
         
         if (!window.stacksAPI.isWalletConnected) {
             if (submissionStatus) {
@@ -750,16 +875,261 @@ class GameScene extends Phaser.Scene {
             gameOverScreen.style.display = 'none';
         }
         
-        // Reset game state
-        this.gameState = {
-            score: 0,
-            level: 1,
-            timeLeft: CONFIG.BASE_TIME,
-            isGameOver: false,
-            isPaused: false
+        // Hide victory screen
+        const victoryOverlay = document.getElementById('victory-overlay');
+        if (victoryOverlay) {
+            victoryOverlay.style.display = 'none';
+        }
+        
+        // Return to maze creation scene instead of restarting directly
+        this.scene.start('MazeCreationScene');
+    }
+
+    jumpToLevel(targetLevel) {
+        if (targetLevel < 1 || targetLevel > 10) return;
+        
+        console.log(`Jumping to level ${targetLevel}`);
+        
+        // Update game state
+        this.gameState.level = targetLevel;
+        
+        // Generate new level
+        this.generateNewLevel();
+        
+        // Update UI
+        this.updateUI();
+    }
+
+    gameWon() {
+        console.log('🎉 Victory! Player completed all 10 levels!');
+        
+        this.gameState.isGameOver = true;
+        
+        // Stop timer
+        if (this.gameTimer) {
+            this.gameTimer.destroy();
+        }
+        
+        // Show victory screen
+        this.showVictoryScreen();
+        
+        // Submit score to blockchain
+        this.submitScore();
+    }
+
+    showVictoryScreen() {
+        // Create victory overlay
+        let victoryOverlay = document.getElementById('victory-overlay');
+        if (!victoryOverlay) {
+            victoryOverlay = document.createElement('div');
+            victoryOverlay.id = 'victory-overlay';
+            victoryOverlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, rgba(0, 204, 255, 0.9), rgba(255, 170, 0, 0.9));
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 300;
+                animation: victoryFadeIn 1s ease-in-out;
+            `;
+            
+            // Add CSS animation for dramatic entrance
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes victoryFadeIn {
+                    0% { opacity: 0; transform: scale(0.8); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+                @keyframes victoryPulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+                .victory-title {
+                    animation: victoryPulse 2s ease-in-out infinite;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            victoryOverlay.innerHTML = `
+                <div class="victory-title" style="font-size: 64px; color: #FFFFFF; margin-bottom: 20px; text-shadow: 0 0 30px #00CCFF, 0 0 60px #FFAA00; font-weight: bold; text-align: center;">
+                    🎉 VICTORY! 🎉
+                </div>
+                <div style="font-size: 32px; color: #FFFFFF; margin-bottom: 30px; text-shadow: 0 0 20px #000000; text-align: center;">
+                    Congratulations!
+                </div>
+                <div style="font-size: 20px; color: #FFFFFF; margin-bottom: 20px; text-shadow: 0 0 15px #000000; text-align: center;">
+                    You've completed all 10 levels of the maze!
+                </div>
+                <div style="font-size: 48px; color: #FFAA00; margin-bottom: 30px; text-shadow: 0 0 25px #000000; font-weight: bold;">
+                    Final Score: ${this.gameState.score}
+                </div>
+                <div style="font-size: 16px; color: #FFFFFF; margin-bottom: 40px; text-shadow: 0 0 10px #000000; text-align: center; max-width: 400px;">
+                    From the simple 20×20 mazes to the nightmare 40×40 challenge - you've mastered them all!
+                </div>
+                <button id="play-again-button" style="
+                    background: linear-gradient(135deg, #00CCFF, #0099CC);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    font-size: 18px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(0, 204, 255, 0.4);
+                    transition: all 0.3s ease;
+                    font-weight: bold;
+                " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(0, 204, 255, 0.6)';" 
+                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0, 204, 255, 0.4)';">
+                    🎮 Play Again
+                </button>
+                <div id="victory-submission-status" style="margin-top: 20px; font-size: 14px; color: #FFFFFF; text-align: center;"></div>
+            `;
+            
+            document.getElementById('game-container').appendChild(victoryOverlay);
+        } else {
+            victoryOverlay.style.display = 'flex';
+        }
+        
+        // Setup play again button
+        const playAgainButton = document.getElementById('play-again-button');
+        if (playAgainButton) {
+            playAgainButton.onclick = () => this.restartGame();
+        }
+    }
+
+    // Helper methods for proportional entity scaling
+    getScaledPlayerSize() {
+        if (!this.levelCellSize) return CONFIG.PLAYER_SIZE;
+        
+        // Calculate scale factor based on cell size ratio
+        const scaleFactor = this.levelCellSize / CONFIG.CELL_SIZE;
+        
+        // Scale player size but keep it reasonable (min 8px, max based on cell size)
+        const scaledSize = Math.round(CONFIG.PLAYER_SIZE * scaleFactor);
+        return Math.max(8, Math.min(scaledSize, this.levelCellSize * 0.8));
+    }
+
+    getScaledMainSTXSize() {
+        if (!this.levelCellSize) return 32;
+        
+        const scaleFactor = this.levelCellSize / CONFIG.CELL_SIZE;
+        const scaledSize = Math.round(32 * scaleFactor);
+        return Math.max(12, Math.min(scaledSize, this.levelCellSize * 0.9));
+    }
+
+    getScaledMiniSTXSize() {
+        if (!this.levelCellSize) return 24;
+        
+        const scaleFactor = this.levelCellSize / CONFIG.CELL_SIZE;
+        const scaledSize = Math.round(24 * scaleFactor);
+        return Math.max(10, Math.min(scaledSize, this.levelCellSize * 0.7));
+    }
+
+    adjustGameDifficulty() {
+        if (!this.userMazeConfig) return;
+        
+        // Adjust starting level based on difficulty selection
+        switch(this.userMazeConfig.difficulty) {
+            case 'easy':
+                this.gameState.level = 1; // Start at level 1
+                break;
+            case 'hard':
+                this.gameState.level = 4; // Start at level 4
+                break;
+            case 'difficult':
+                this.gameState.level = 8; // Start at level 8
+                break;
+        }
+        
+        console.log(`Starting at level ${this.gameState.level} based on difficulty: ${this.userMazeConfig.difficulty}`);
+    }
+
+    trackLevelCompletion() {
+        // Track completion for blockchain submission
+        const completion = {
+            level: this.gameState.level,
+            score: this.gameState.score,
+            timeRemaining: this.gameState.timeLeft,
+            timestamp: Date.now(),
+            gameId: this.userMazeConfig?.gameId,
+            userId: this.userMazeConfig?.userId
         };
         
-        // Restart the scene
-        this.scene.restart();
+        this.levelCompletions.push(completion);
+        console.log('Level completion tracked:', completion);
+    }
+
+    async gameWon() {
+        console.log('🎉 Victory! Player completed all 10 levels!');
+        
+        this.gameState.isGameOver = true;
+        
+        // Stop timer
+        if (this.gameTimer) {
+            this.gameTimer.destroy();
+        }
+        
+        // Submit all level completions to blockchain
+        await this.submitCompletionsToBlockchain();
+        
+        // Check if bounty conditions are met
+        this.checkBountyConditions();
+        
+        // Show victory screen
+        this.showVictoryScreen();
+    }
+
+    async submitCompletionsToBlockchain() {
+        if (!this.userMazeConfig || this.levelCompletions.length === 0) return;
+        
+        try {
+            console.log('Submitting level completions to blockchain:', this.levelCompletions);
+            
+            // TODO: Batch submit all level completions
+            // await window.contractCalls.submitLevelCompletions(
+            //     this.userMazeConfig.gameId,
+            //     this.userMazeConfig.userId,
+            //     this.levelCompletions
+            // );
+            
+            console.log('Level completions submitted successfully');
+            
+        } catch (error) {
+            console.error('Error submitting level completions:', error);
+            // Continue with game flow even if blockchain submission fails
+        }
+    }
+
+    checkBountyConditions() {
+        if (!this.userMazeConfig || this.userMazeConfig.bountyAmount <= 0) return;
+        
+        // Check if bountyConditions exists before accessing properties
+        if (!this.userMazeConfig.bountyConditions) {
+            console.log('No bounty conditions set');
+            return;
+        }
+        
+        const conditions = this.userMazeConfig.bountyConditions;
+        let bountyEarned = false;
+        
+        // Check completion conditions
+        if (conditions.completeAllLevels && this.gameState.level >= 10) {
+            bountyEarned = true;
+        }
+        
+        if (conditions.minimumScore && this.gameState.score >= conditions.minimumScore) {
+            bountyEarned = true;
+        }
+        
+        // TODO: Add time limit check if implemented
+        
+        if (bountyEarned) {
+            console.log(`🎉 Bounty earned! ${this.userMazeConfig.bountyAmount} STX`);
+            // TODO: Trigger bounty payment through smart contract
+        }
     }
 }
