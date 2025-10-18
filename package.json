@@ -10,17 +10,14 @@
     "build": "cd frontend && npm run build",
     "install-frontend": "cd frontend && npm install",
     "setup": "npm run install-frontend",
-    
     "test": "vitest run",
     "test:report": "vitest run -- --coverage --costs",
     "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\"",
-    
     "deploy:testnet": "clarinet deploy --testnet",
     "deploy:devnet": "clarinet deploy --devnet",
     "test:contracts": "clarinet test",
     "check:contracts": "clarinet check",
     "console": "clarinet console",
-    
     "postinstall": "npm run install-frontend"
   },
   "keywords": [
@@ -36,6 +33,7 @@
   "license": "MIT",
   "dependencies": {
     "@hirosystems/clarinet-sdk": "^3.6.0",
+    "@stacks/connect": "^8.2.0",
     "@stacks/transactions": "^7.2.0",
     "@types/node": "^24.4.0",
     "chokidar-cli": "^3.0.0",

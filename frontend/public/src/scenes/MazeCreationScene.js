@@ -131,22 +131,51 @@ class MazeCreationScene extends Phaser.Scene {
         
         try {
             // Show status message
-            statusDiv.textContent = 'Creating maze...';
+            statusDiv.textContent = 'Creating maze on blockchain...';
             statusDiv.style.opacity = '1';
             createButton.disabled = true;
             createButton.style.opacity = '0.6';
             
-            // Generate random game ID
-            const gameId = this.generateRandomGameId();
+            // Get wallet address
+            const userAddress = localStorage.getItem('stxAddress');
+            if (!userAddress) {
+                throw new Error('Wallet not connected. Please connect your wallet first.');
+            }
             
-            // Create simple maze configuration
+            // Define game parameters
+            const totalRounds = 5; // 5 levels per game
+            const bountyAmount = 100000; // 100,000 microSTX
+            
+            console.log('📋 Creating game on blockchain...');
+            console.log(`   Rounds: ${totalRounds}`);
+            console.log(`   Bounty: ${bountyAmount} microSTX`);
+            console.log(`   Player: ${userAddress}`);
+            
+            // Call smart contract to create game
+            const gameResult = await window.contractAPI.createGame(totalRounds, bountyAmount);
+            
+            if (!gameResult.success) {
+                throw new Error(gameResult.error || 'Failed to create game on blockchain');
+            }
+            
+            // Store game configuration
             this.userMazeConfig = {
-                gameId: gameId,
+                gameId: gameResult.gameId,
+                txId: gameResult.txId,
+                totalRounds: totalRounds,
+                bounty: bountyAmount,
+                playerAddress: userAddress,
                 difficulty: 'normal',
-                createdAt: Date.now()
+                createdAt: Date.now(),
+                currentRound: 0,
+                roundTimes: [] // Track completion time for each round
             };
             
-            statusDiv.textContent = 'Maze created successfully! Starting game...';
+            console.log('✅ Game created successfully!');
+            console.log(`   Game ID: ${gameResult.gameId}`);
+            console.log(`   TX ID: ${gameResult.txId}`);
+            
+            statusDiv.textContent = 'Maze created! Starting game...';
             
             // Start the game with the maze configuration
             setTimeout(() => {
@@ -154,11 +183,21 @@ class MazeCreationScene extends Phaser.Scene {
             }, 1000);
             
         } catch (error) {
-            console.error('Error creating maze:', error);
-            statusDiv.textContent = 'Error creating maze. Please try again.';
+            console.error('❌ Error creating maze:', error);
+            statusDiv.textContent = `Error: ${error.message}`;
+            statusDiv.style.color = '#FF6B6B';
             statusDiv.style.opacity = '1';
             createButton.disabled = false;
             createButton.style.opacity = '1';
+            
+            // Show error popup
+            ErrorPopup.show(error.message, '❌ Game Creation Failed', 5000);
+            
+            // Reset after delay
+            setTimeout(() => {
+                statusDiv.textContent = '';
+                statusDiv.style.opacity = '0';
+            }, 5000);
         }
     }
 

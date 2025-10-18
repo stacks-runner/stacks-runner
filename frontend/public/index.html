@@ -68,6 +68,24 @@
                 min-width: 70px !important;
                 font-size: 12px !important;
             }
+
+            .game-over-title {
+                font-size: 36px;
+                letter-spacing: 1px;
+            }
+
+            .final-score {
+                font-size: 18px;
+            }
+
+            .restart-button {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+
+            #submission-status {
+                font-size: 14px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -84,6 +102,26 @@
                 padding: 4px 8px !important;
                 min-width: 60px !important;
                 font-size: 11px !important;
+            }
+
+            .game-over-title {
+                font-size: 28px;
+                margin-bottom: 15px;
+            }
+
+            .final-score {
+                font-size: 16px;
+                margin-bottom: 20px;
+            }
+
+            .restart-button {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+
+            #submission-status {
+                font-size: 12px;
+                min-height: 50px;
             }
         }
 
@@ -184,41 +222,254 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 25, 0.98), 
+                rgba(30, 10, 50, 0.98),
+                rgba(5, 5, 25, 0.98));
             display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 500;
+            backdrop-filter: blur(8px);
+            border-top: 4px solid #8B5CF6;
+            border-bottom: 4px solid #A855F7;
+            gap: 30px;
+        }
+
+        #game-over-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            border-radius: 0;
+        }
+
+        #game-over-screen > * {
+            position: relative;
+            z-index: 1;
         }
 
         .game-over-title {
-            font-size: 48px;
-            color: #ff4444;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px #ff4444;
+            font-size: 56px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #10b981, #34d399, #10b981);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+            animation: titlePulse 2s ease-in-out infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes titlePulse {
+            0%, 100% {
+                filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.3));
+            }
+            50% {
+                filter: drop-shadow(0 0 25px rgba(16, 185, 129, 0.6));
+            }
         }
 
         .final-score {
-            font-size: 24px;
-            color: #FFFFFF;
-            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #A8DADC;
+            letter-spacing: 2px;
+            text-shadow: 
+                0 0 15px rgba(139, 92, 246, 0.4),
+                0 0 30px rgba(168, 85, 247, 0.2);
+            animation: scoreGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes scoreGlow {
+            0%, 100% {
+                filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+            }
+            50% {
+                filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.5));
+            }
+        }
+
+        #submission-status {
+            font-size: 16px;
+            color: #E0E0E0;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+            line-height: 1.6;
+        }
+
+        #submission-status strong {
+            color: #10b981;
+            font-weight: 700;
         }
 
         .restart-button {
-            padding: 15px 30px;
+            padding: 16px 48px;
             font-size: 20px;
-            background-color: #8B5CF6;
-            border: none;
-            border-radius: 10px;
-            color: #000;
-            font-weight: bold;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #8B5CF6, #A855F7);
+            border: 3px solid #8B5CF6;
+            border-radius: 12px;
+            color: #FFFFFF;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 
+                0 0 20px rgba(139, 92, 246, 0.5),
+                0 0 40px rgba(139, 92, 246, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .restart-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
         }
 
         .restart-button:hover {
-            transform: scale(1.1);
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 
+                0 0 30px rgba(139, 92, 246, 0.8),
+                0 0 60px rgba(139, 92, 246, 0.4),
+                inset 0 0 20px rgba(255, 255, 255, 0.15);
+            background: linear-gradient(135deg, #A855F7, #D6BCFA);
+            border-color: #D6BCFA;
+        }
+
+        .restart-button:hover::before {
+            left: 100%;
+        }
+
+        .restart-button:active {
+            transform: translateY(-2px) scale(0.98);
+            box-shadow: 
+                0 0 20px rgba(139, 92, 246, 0.6),
+                inset 0 0 15px rgba(139, 92, 246, 0.2);
+        }
+
+        /* Tablet Responsive */
+        @media (max-width: 1024px) {
+            .game-over-title {
+                font-size: 48px;
+            }
+
+            .final-score {
+                font-size: 26px;
+            }
+
+            #submission-status {
+                font-size: 15px;
+            }
+
+            .restart-button {
+                padding: 15px 44px;
+                font-size: 19px;
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            #game-over-screen {
+                gap: 20px;
+                border-top: 3px solid #8B5CF6;
+                border-bottom: 3px solid #A855F7;
+            }
+
+            .game-over-title {
+                font-size: 40px;
+                letter-spacing: 2px;
+            }
+
+            .final-score {
+                font-size: 22px;
+            }
+
+            #submission-status {
+                font-size: 14px;
+                min-height: 60px;
+                gap: 10px;
+            }
+
+            .restart-button {
+                padding: 14px 36px;
+                font-size: 18px;
+                letter-spacing: 1px;
+            }
+
+            .restart-button:hover {
+                transform: translateY(-3px) scale(1.03);
+            }
+        }
+
+        /* Small Mobile */
+        @media (max-width: 480px) {
+            #game-over-screen {
+                gap: 16px;
+                border-top: 2px solid #8B5CF6;
+                border-bottom: 2px solid #A855F7;
+            }
+
+            .game-over-title {
+                font-size: 32px;
+                letter-spacing: 1px;
+            }
+
+            .final-score {
+                font-size: 20px;
+            }
+
+            #submission-status {
+                font-size: 13px;
+                min-height: 55px;
+            }
+
+            .restart-button {
+                padding: 12px 32px;
+                font-size: 16px;
+                letter-spacing: 1px;
+            }
+
+            .restart-button:hover {
+                transform: translateY(-2px) scale(1.02);
+            }
+        }
+
+        /* Extra Small Mobile */
+        @media (max-width: 360px) {
+            .game-over-title {
+                font-size: 28px;
+            }
+
+            .final-score {
+                font-size: 18px;
+            }
+
+            .restart-button {
+                padding: 11px 28px;
+                font-size: 15px;
+            }
         }
 
         #instructions {
@@ -305,23 +556,37 @@
     <!-- Phaser.js -->
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     
-    <!-- Stacks.js -->
-    <script src="https://unpkg.com/@stacks/connect@7.4.0/dist/connect.js"></script>
-    <script src="https://unpkg.com/@stacks/transactions@6.5.4/dist/transactions.js"></script>
-    <script src="https://unpkg.com/@stacks/network@6.5.4/dist/network.js"></script>
-
-    <!-- Game Scripts -->
+    <!-- @stacks/connect from CDN with local fallback -->
+    <script src="https://unpkg.com/@stacks/connect@7.0.2/dist/connect.umd.js" onerror="loadLocalStacksConnect()"></script>
+    <script>
+      // Fallback function to load local copy if CDN fails
+      function loadLocalStacksConnect() {
+        console.log('⚠️ CDN failed, loading local copy...');
+        var script = document.createElement('script');
+        script.src = 'lib/stacks-connect.js';
+        document.head.appendChild(script);
+      }
+    </script>
+    
+    <!-- Config and API must load FIRST (no defer) to be available for scenes -->
     <script src="src/config.js"></script>
-    <!-- <script src="src/blockchain/stacksAPI.js"></script>
-    <script src="src/blockchain/contractCalls.js"></script> -->
-    <script src="src/utils/mazeGenerator.js"></script>
-    <script src="src/utils/collisions.js"></script>
-    <script src="src/scenes/TitleScene.js"></script>
-    <script src="src/scenes/ConnectWalletScene.js"></script>
-    <script src="src/scenes/MazeCreationScene.js"></script>
-    <script src="src/scenes/BootScene.js"></script>
-    <script src="src/scenes/GameScene.js"></script>
-    <script src="src/scenes/UIScene.js"></script>
-    <script src="src/main.js"></script>
+    <script src="src/api/stacksAPI.js"></script>
+    <script src="src/api/contractAPI.js"></script>
+    <script src="src/ui/ErrorPopup.js"></script>
+    
+    <!-- Utility scripts (with defer is fine) -->
+    <script defer src="src/utils/mazeGenerator.js"></script>
+    <script defer src="src/utils/collisions.js"></script>
+    
+    <!-- Scene scripts (with defer) -->
+    <script defer src="src/scenes/BootScene.js"></script>
+    <script defer src="src/scenes/TitleScene.js"></script>
+    <script defer src="src/scenes/ConnectWalletScene.js"></script>
+    <script defer src="src/scenes/MazeCreationScene.js"></script>
+    <script defer src="src/scenes/GameScene.js"></script>
+    <script defer src="src/scenes/UIScene.js"></script>
+    
+    <!-- Main entry point (loads last) -->
+    <script defer src="src/main.js"></script>
 </body>
 </html>

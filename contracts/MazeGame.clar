@@ -1,4 +1,3 @@
-``` 
 ;; Maze Game Bounty Smart Contract
 ;; Core game logic handled on frontend, contract manages state and rewards
 
@@ -334,8 +333,3 @@
     (ok true)
   )
 )
-
-
-
-```
-

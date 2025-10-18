@@ -31,10 +31,8 @@ class BootScene extends Phaser.Scene {
     }
 
     create() {
-        // Initialize wallet connection
-        if (window.stacksAPI) {
-            window.stacksAPI.initialize();
-        }
+        // StacksAPI is already initialized as a singleton when created
+        // No additional initialization needed here
     }
 
     createColorTextures() {
