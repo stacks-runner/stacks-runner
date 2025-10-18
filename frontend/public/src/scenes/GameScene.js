@@ -51,7 +51,17 @@ class GameScene extends Phaser.Scene {
         const uiOverlay = document.getElementById('ui-overlay');
         if (uiOverlay) {
             uiOverlay.style.display = 'flex';
+            uiOverlay.style.visibility = 'visible';
+            uiOverlay.style.opacity = '1';
+            uiOverlay.style.pointerEvents = 'none';
         }
+        
+        // Ensure UI elements are visible
+        const uiElements = document.querySelectorAll('.ui-element');
+        uiElements.forEach(el => {
+            el.style.visibility = 'visible';
+            el.style.opacity = '1';
+        });
         
         // Reset game state values to prevent title screen text from persisting
         this.gameState = {
@@ -116,6 +126,7 @@ class GameScene extends Phaser.Scene {
         // Touch/swipe gesture detection
         let startX, startY, startTime;
         let isPointerDown = false;
+        let lastMoveX = 0, lastMoveY = 0;
         const minSwipeDistance = 50;
         const maxTapTime = 200; // milliseconds
         
@@ -132,10 +143,12 @@ class GameScene extends Phaser.Scene {
             startY = pointer.y;
             startTime = this.time.now;
             isPointerDown = true;
+            lastMoveX = 0;
+            lastMoveY = 0;
         });
         
         this.input.on('pointermove', (pointer) => {
-            // Mobile drag movement with collision detection
+            // Mobile drag movement with collision detection - continuous smooth movement
             if (isPointerDown && startX && startY && this.player && !this.gameState.isGameOver && !this.gameState.isPaused) {
                 const deltaX = pointer.x - startX;
                 const deltaY = pointer.y - startY;
@@ -143,14 +156,33 @@ class GameScene extends Phaser.Scene {
                 
                 // Only move if dragged significant distance
                 if (distance > 20 && distance < minSwipeDistance) {
-                    // Normalize the movement direction
+                    // Normalize the movement direction - use small incremental steps for collision
                     const angle = Math.atan2(deltaY, deltaX);
-                    const speed = CONFIG.PLAYER_SPEED / 60;
+                    const speed = CONFIG.PLAYER_SPEED / 120; // Slower incremental movement
                     const moveX = Math.cos(angle) * speed;
                     const moveY = Math.sin(angle) * speed;
                     
-                    // Use the same collision detection as keyboard input
-                    this.movePlayerWithCollision(moveX, moveY);
+                    // Apply incremental movement with full collision detection
+                    const mazeRelativeX = this.player.x - this.mazeOffsetX;
+                    const mazeRelativeY = this.player.y - this.mazeOffsetY;
+                    
+                    const newPosition = CollisionSystem.getValidMovePosition(
+                        mazeRelativeX, mazeRelativeY,
+                        moveX, moveY,
+                        this.getScaledPlayerSize(), this.getScaledPlayerSize(),
+                        this.collisionGrid, this.levelCellSize || CONFIG.CELL_SIZE,
+                        this.maze.grid
+                    );
+                    
+                    // Only update if position actually changed (collision allowed it)
+                    const worldX = newPosition.x + this.mazeOffsetX;
+                    const worldY = newPosition.y + this.mazeOffsetY;
+                    
+                    if (worldX !== this.player.x || worldY !== this.player.y) {
+                        this.player.setPosition(worldX, worldY);
+                        lastMoveX = moveX;
+                        lastMoveY = moveY;
+                    }
                 }
             }
         });
@@ -597,6 +629,12 @@ class GameScene extends Phaser.Scene {
             return;
         }
         
+        // Ensure UI overlay stays visible during gameplay
+        const uiOverlay = document.getElementById('ui-overlay');
+        if (uiOverlay && uiOverlay.style.display !== 'flex') {
+            uiOverlay.style.display = 'flex';
+        }
+        
         this.handleInput();
         this.checkCollisions();
         this.updateUI();
@@ -848,6 +886,12 @@ class GameScene extends Phaser.Scene {
             this.gameTimer.destroy();
         }
         
+        // Hide UI overlay when game ends
+        const uiOverlay = document.getElementById('ui-overlay');
+        if (uiOverlay) {
+            uiOverlay.style.display = 'none';
+        }
+        
         // Show game over screen with winner info if applicable
         this.showGameOverScreen();
         
@@ -1042,6 +1086,12 @@ class GameScene extends Phaser.Scene {
         // Stop timer
         if (this.gameTimer) {
             this.gameTimer.destroy();
+        }
+        
+        // Hide UI overlay when game ends
+        const uiOverlay = document.getElementById('ui-overlay');
+        if (uiOverlay) {
+            uiOverlay.style.display = 'none';
         }
         
         // Show victory screen
