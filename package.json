@@ -36,12 +36,13 @@
     "@stacks/connect": "^8.2.0",
     "@stacks/transactions": "^7.2.0",
     "@types/node": "^24.4.0",
+    "bite": "^0.1.0-4",
     "chokidar-cli": "^3.0.0",
     "vitest": "^3.2.4",
     "vitest-environment-clarinet": "^2.3.0"
   },
   "devDependencies": {
-    "@stacks/cli": "^1.0.0"
+    "@stacks/cli": "^7.2.0"
   },
   "engines": {
     "node": ">=14.0.0"

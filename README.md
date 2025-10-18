@@ -177,9 +177,10 @@ For details, see:
 
 | Name | Role | Description |
 |------|------|--------------|
-| Emmanuel Ogbu | Smart Contract Developer | Clarity contracts & blockchain logic |
-| [Team Member 2] | Frontend Developer | Game interface & Phaser mechanics |
-| [Team Member 3] | Game Designer | Maze design & difficulty balancing |
+| Bright Bassey | Smart Contract Developer | Clarity contracts & blockchain logic |
+| Isaac Edoka | Frontend Developer | Game interface & animations |
+| Emmanuel Ogbu | Game Designer | Maze design & user flow |
+| Aniekan Odung | Project Manager | Coordination & testing |
 
 ---
 
