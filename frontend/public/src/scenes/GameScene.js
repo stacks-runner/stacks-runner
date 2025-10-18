@@ -115,8 +115,10 @@ class GameScene extends Phaser.Scene {
     setupMobileControls() {
         // Touch/swipe gesture detection
         let startX, startY, startTime;
+        let isPointerDown = false;
         const minSwipeDistance = 50;
         const maxTapTime = 200; // milliseconds
+        
         window.addEventListener('touchmove', (e) => { 
             e.preventDefault();
             const X = e.touches[0].clientX;
@@ -124,13 +126,38 @@ class GameScene extends Phaser.Scene {
          }, { passive: false });
 
         this.input.on('pointerdown', (pointer) => {
+            if (this.gameState.isGameOver || this.gameState.isPaused) return;
+            
             startX = pointer.x;
             startY = pointer.y;
             startTime = this.time.now;
+            isPointerDown = true;
+        });
+        
+        this.input.on('pointermove', (pointer) => {
+            // Mobile drag movement with collision detection
+            if (isPointerDown && startX && startY && this.player && !this.gameState.isGameOver && !this.gameState.isPaused) {
+                const deltaX = pointer.x - startX;
+                const deltaY = pointer.y - startY;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                // Only move if dragged significant distance
+                if (distance > 20 && distance < minSwipeDistance) {
+                    // Normalize the movement direction
+                    const angle = Math.atan2(deltaY, deltaX);
+                    const speed = CONFIG.PLAYER_SPEED / 60;
+                    const moveX = Math.cos(angle) * speed;
+                    const moveY = Math.sin(angle) * speed;
+                    
+                    // Use the same collision detection as keyboard input
+                    this.movePlayerWithCollision(moveX, moveY);
+                }
+            }
         });
         
         this.input.on('pointerup', (pointer) => {
             if (!startX || !startY) return;
+            isPointerDown = false;
             
             const deltaX = pointer.x - startX;
             const deltaY = pointer.y - startY;
@@ -140,17 +167,18 @@ class GameScene extends Phaser.Scene {
             // Check for tap (short touch without movement)
             if (distance < 20 && timeDiff < maxTapTime) {
                 this.togglePause();
+                startX = startY = startTime = null;
                 return;
             }
             
             // Only handle swipes on touch devices or when distance is significant
             if (distance < minSwipeDistance) {
-                // Reset variables for short movements (like mouse clicks)
+                // Reset variables for short movements
                 startX = startY = startTime = null;
                 return;
             }
             
-            // Determine swipe direction
+            // Determine swipe direction with collision detection
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
                 // Horizontal swipe
                 if (deltaX > 0) {
@@ -598,23 +626,30 @@ class GameScene extends Phaser.Scene {
         
         // Move player with collision detection
         if (deltaX !== 0 || deltaY !== 0) {
-            // Convert world position to maze-relative position for collision detection
-            const mazeRelativeX = this.player.x - this.mazeOffsetX;
-            const mazeRelativeY = this.player.y - this.mazeOffsetY;
-                 const newPosition = CollisionSystem.getValidMovePosition(
+            this.movePlayerWithCollision(deltaX, deltaY);
+        }
+    }
+
+    movePlayerWithCollision(deltaX, deltaY) {
+        if (!this.player) return;
+        
+        // Convert world position to maze-relative position for collision detection
+        const mazeRelativeX = this.player.x - this.mazeOffsetX;
+        const mazeRelativeY = this.player.y - this.mazeOffsetY;
+        
+        const newPosition = CollisionSystem.getValidMovePosition(
             mazeRelativeX, mazeRelativeY,
             deltaX, deltaY,
             this.getScaledPlayerSize(), this.getScaledPlayerSize(),
             this.collisionGrid, this.levelCellSize || CONFIG.CELL_SIZE,
             this.maze.grid  // Pass the maze grid for wall checking
         );
-            
-            // Convert back to world coordinates
-            const worldX = newPosition.x + this.mazeOffsetX;
-            const worldY = newPosition.y + this.mazeOffsetY;
-            
-            this.player.setPosition(worldX, worldY);
-        }
+        
+        // Convert back to world coordinates
+        const worldX = newPosition.x + this.mazeOffsetX;
+        const worldY = newPosition.y + this.mazeOffsetY;
+        
+        this.player.setPosition(worldX, worldY);
     }
 
     checkCollisions() {
@@ -813,7 +848,7 @@ class GameScene extends Phaser.Scene {
             this.gameTimer.destroy();
         }
         
-        // Show game over screen
+        // Show game over screen with winner info if applicable
         this.showGameOverScreen();
         
         // Submit score to blockchain
@@ -823,9 +858,33 @@ class GameScene extends Phaser.Scene {
     showGameOverScreen() {
         const gameOverScreen = document.getElementById('game-over-screen');
         const finalScoreElement = document.getElementById('final-score');
+        const submissionStatus = document.getElementById('submission-status');
         
         if (finalScoreElement) {
             finalScoreElement.textContent = this.gameState.score;
+        }
+        
+        // Check if player is a winner
+        if (this.userMazeConfig?.winnerPosition) {
+            // Winner - show reward info
+            const title = document.querySelector('.game-over-title');
+            if (title) {
+                title.textContent = '🏆 Congratulations!';
+                title.style.color = '#10b981';
+            }
+            
+            if (submissionStatus) {
+                const rewardInSTX = this.userMazeConfig.winnerReward / 1000000; // Convert from microSTX
+                submissionStatus.innerHTML = `
+                    <div style="color: #10b981; font-size: 16px;">
+                        <strong>Position:</strong> #${this.userMazeConfig.winnerPosition}<br>
+                        <strong>Reward:</strong> ${rewardInSTX.toFixed(2)} STX
+                    </div>
+                `;
+            }
+            
+            // Add claim reward button
+            this.addClaimRewardButton();
         }
         
         if (gameOverScreen) {
@@ -836,6 +895,81 @@ class GameScene extends Phaser.Scene {
         const restartButton = document.getElementById('restart-button');
         if (restartButton) {
             restartButton.onclick = () => this.restartGame();
+        }
+    }
+    
+    addClaimRewardButton() {
+        const gameOverScreen = document.getElementById('game-over-screen');
+        if (!gameOverScreen) return;
+        
+        // Check if button already exists
+        if (document.getElementById('claim-reward-btn')) return;
+        
+        const claimButton = document.createElement('button');
+        claimButton.id = 'claim-reward-btn';
+        claimButton.textContent = '💰 Claim Reward';
+        claimButton.style.cssText = `
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        `;
+        
+        claimButton.addEventListener('mouseenter', () => {
+            claimButton.style.transform = 'translateY(-2px)';
+            claimButton.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+        });
+        
+        claimButton.addEventListener('mouseleave', () => {
+            claimButton.style.transform = 'translateY(0)';
+            claimButton.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.3)';
+        });
+        
+        claimButton.addEventListener('click', async () => {
+            await this.claimReward();
+        });
+        
+        // Find restart button and insert before it
+        const restartButton = document.getElementById('restart-button');
+        if (restartButton) {
+            restartButton.parentNode.insertBefore(claimButton, restartButton);
+        } else {
+            gameOverScreen.appendChild(claimButton);
+        }
+    }
+    
+    async claimReward() {
+        const claimButton = document.getElementById('claim-reward-btn');
+        if (!claimButton) return;
+        
+        try {
+            claimButton.disabled = true;
+            claimButton.textContent = '⏳ Processing...';
+            
+            const result = await window.contractAPI.claimReward(
+                this.userMazeConfig.gameId,
+                this.userMazeConfig.winnerPosition
+            );
+            
+            if (result.success) {
+                claimButton.style.background = 'linear-gradient(135deg, #059669, #047857)';
+                claimButton.textContent = '✅ Reward Claimed!';
+                ErrorPopup.success(`Claimed ${(result.rewardAmount / 1000000).toFixed(2)} STX!\nTX: ${result.txId}`, 5000);
+            } else {
+                throw new Error(result.error || 'Failed to claim reward');
+            }
+        } catch (error) {
+            console.error('❌ Failed to claim reward:', error);
+            ErrorPopup.show(error.message, '❌ Claim Failed', 5000);
+            claimButton.disabled = false;
+            claimButton.textContent = '💰 Claim Reward';
         }
     }
 
@@ -929,7 +1063,7 @@ class GameScene extends Phaser.Scene {
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: linear-gradient(135deg, rgba(0, 204, 255, 0.9), rgba(255, 170, 0, 0.9));
+                background: #000000;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
@@ -956,7 +1090,7 @@ class GameScene extends Phaser.Scene {
             document.head.appendChild(style);
             
             victoryOverlay.innerHTML = `
-                <div class="victory-title" style="font-size: 64px; color: #FFFFFF; margin-bottom: 20px; text-shadow: 0 0 30px #00CCFF, 0 0 60px #FFAA00; font-weight: bold; text-align: center;">
+                <div class="victory-title" style="font-size: 64px; color: #FFFFFF; margin-bottom: 20px; font-weight: bold; text-align: center;">
                     🎉 VICTORY! 🎉
                 </div>
                 <div style="font-size: 32px; color: #FFFFFF; margin-bottom: 30px; text-shadow: 0 0 20px #000000; text-align: center;">
@@ -965,14 +1099,14 @@ class GameScene extends Phaser.Scene {
                 <div style="font-size: 20px; color: #FFFFFF; margin-bottom: 20px; text-shadow: 0 0 15px #000000; text-align: center;">
                     You've completed all 10 levels of the maze!
                 </div>
-                <div style="font-size: 48px; color: #FFAA00; margin-bottom: 30px; text-shadow: 0 0 25px #000000; font-weight: bold;">
+                <div style="font-size: 48px; color: #8B5CF6; margin-bottom: 30px; text-shadow: 0 0 25px #000000; font-weight: bold;">
                     Final Score: ${this.gameState.score}
                 </div>
                 <div style="font-size: 16px; color: #FFFFFF; margin-bottom: 40px; text-shadow: 0 0 10px #000000; text-align: center; max-width: 400px;">
                     From the simple 20×20 mazes to the nightmare 40×40 challenge - you've mastered them all!
                 </div>
                 <button id="play-again-button" style="
-                    background: linear-gradient(135deg, #00CCFF, #0099CC);
+                    background: #8B5CF6;
                     color: white;
                     border: none;
                     padding: 15px 30px;
@@ -982,8 +1116,8 @@ class GameScene extends Phaser.Scene {
                     box-shadow: 0 4px 15px rgba(0, 204, 255, 0.4);
                     transition: all 0.3s ease;
                     font-weight: bold;
-                " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(0, 204, 255, 0.6)';" 
-                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0, 204, 255, 0.4)';">
+                " onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(139, 92, 246, 0.3)';" 
+                   onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(139, 92, 246, 0.3)';">
                     🎮 Play Again
                 </button>
                 <div id="victory-submission-status" style="margin-top: 20px; font-size: 14px; color: #FFFFFF; text-align: center;"></div>
@@ -1060,7 +1194,57 @@ class GameScene extends Phaser.Scene {
         };
         
         this.levelCompletions.push(completion);
-        console.log('Level completion tracked:', completion);
+        console.log('✅ Level completion tracked:', completion);
+        
+        // Submit progress to blockchain (asynchronously, don't block gameplay)
+        this.submitLevelProgressToBlockchain(completion);
+    }
+    
+    async submitLevelProgressToBlockchain(completion) {
+        try {
+            if (!this.userMazeConfig || !this.userMazeConfig.gameId) {
+                console.warn('⚠️ No game ID available for progress submission');
+                return;
+            }
+            
+            // Calculate completion time (time spent on this round)
+            const roundTime = (completion.timestamp - (this.levelCompletions.length > 1 ? 
+                this.levelCompletions[this.levelCompletions.length - 2].timestamp : 
+                this.userMazeConfig.createdAt)) || 30000;
+            
+            console.log(`📤 Submitting round ${completion.level} progress to blockchain...`);
+            
+            // Call contract API to update progress
+            const result = await window.contractAPI.updatePlayerProgress(
+                this.userMazeConfig.gameId,
+                completion.level,
+                roundTime
+            );
+            
+            if (result.success) {
+                console.log(`✅ Round ${completion.level} submitted to blockchain`);
+                
+                // Check if this completed the game
+                if (result.isWinner !== undefined) {
+                    // Player completed final round
+                    if (result.isWinner) {
+                        console.log(`🏆 Player is a winner! Position: ${result.position}`);
+                        this.userMazeConfig.winnerPosition = result.position;
+                        this.userMazeConfig.winnerReward = result.reward;
+                    } else {
+                        console.log(`📊 Game complete but not in top 5`);
+                    }
+                }
+            } else {
+                console.error(`❌ Failed to submit progress: ${result.error}`);
+                if (result.error) {
+                    ErrorPopup.warning(`Blockchain note: ${result.error}`, 3000);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error submitting progress to blockchain:', error);
+            ErrorPopup.warning('Could not submit progress to blockchain', 3000);
+        }
     }
 
     async gameWon() {

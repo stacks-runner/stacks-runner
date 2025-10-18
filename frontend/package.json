@@ -22,10 +22,14 @@
   "author": "StackRunner Team",
   "license": "MIT",
   "devDependencies": {
+    "@parcel/transformer-webmanifest": "^2.16.0",
     "http-server": "^14.1.1",
-    "live-server": "^1.2.2"
+    "live-server": "^1.2.2",
+    "parcel": "^2.16.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@stacks/connect": "^7.10.2"
+  },
   "engines": {
     "node": ">=14.0.0"
   },
