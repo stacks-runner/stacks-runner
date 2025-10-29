@@ -1,6 +1,6 @@
-# 🌀 StacksRunner
+# 🌀 The Maze
 
-**StacksRunner** is a blockchain-powered 2D maze game built on the **Stacks Blockchain**. Players navigate mazes to earn token rewards, gain XP, and unlock NFT passkeys as they advance through levels.
+**The Maze** is a blockchain-powered 2D maze game built on the **Stacks Blockchain**. Players navigate mazes to earn token rewards, gain XP, and unlock NFT passkeys as they advance through levels.
 
 > **✅ WALLET CONNECTION FIXED (Oct 17, 2025)**: The game now works in **demo mode** using localStorage for wallet persistence. No CDN timeouts! See [WALLET_DEMO_MODE_GUIDE.md](./WALLET_DEMO_MODE_GUIDE.md) for the complete solution and production migration steps.
 
@@ -8,7 +8,7 @@
 
 ## 🎯 Project Overview
 
-StacksRunner integrates gameplay with on-chain mechanics. Players earn rewards and interact with smart contracts written in **Clarity**, the Stacks smart contract language.
+The Maze integrates gameplay with on-chain mechanics. Players earn rewards and interact with smart contracts written in **Clarity**, the Stacks smart contract language.
 
 ### Core Features
 - 🧩 **Maze Challenges:** Players navigate 10 progressive maze levels (25×25 to 35×35 cells).
@@ -23,7 +23,7 @@ StacksRunner integrates gameplay with on-chain mechanics. Players earn rewards a
 ## 🧱 Project Structure
 
 ```
-StacksRunner/
+The Maze/
 │
 ├── contracts/                    # Clarity smart contracts
 │   ├── MazeGame.clar            # Main game logic & bounty management
@@ -199,4 +199,4 @@ This project is licensed under the **MIT License**.
 
 ---
 
-**StacksRunner** — Play, Earn, and Level Up On-Chain 🎮✨
+**The Maze** — Play, Earn, and Level Up On-Chain 🎮✨

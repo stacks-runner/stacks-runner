@@ -1,5 +1,5 @@
 ================================================================================
-  STACKSRUNNER WALLET CONNECTION - IMPLEMENTATION REPORT
+  The Maze WALLET CONNECTION - IMPLEMENTATION REPORT
 ================================================================================
 Date: October 18, 2025
 Status: ✅ COMPLETE & VERIFIED
@@ -8,7 +8,7 @@ Status: ✅ COMPLETE & VERIFIED
 EXECUTIVE SUMMARY
 ================================================================================
 
-The StacksRunner wallet connection system has been successfully implemented using
+The The Maze wallet connection system has been successfully implemented using
 the installed @stacks/connect npm module. The system is:
 
   ✅ Fully functional
@@ -372,7 +372,7 @@ DOCUMENTATION: ✅ COMPLETE
 VERIFICATION: ✅ PASSED
 PRODUCTION READY: ✅ YES
 
-The StacksRunner wallet connection system is fully operational and ready for
+The The Maze wallet connection system is fully operational and ready for
 production deployment. All components have been verified and tested.
 
 ================================================================================

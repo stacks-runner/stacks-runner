@@ -37,7 +37,7 @@ class MazeCreationScene extends Phaser.Scene {
             
             // Create title at top
             const titleElement = document.createElement('h1');
-            titleElement.textContent = 'StacksRunner';
+            titleElement.textContent = 'The Maze';
             titleElement.style.cssText = `
                 color: #FFFFFF;
                 font-size: 48px;

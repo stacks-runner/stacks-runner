@@ -1,4 +1,4 @@
-## ✅ StacksRunner Wallet Connection - Implementation Complete
+## ✅ The Maze Wallet Connection - Implementation Complete
 
 ### What Was Done
 

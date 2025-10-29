@@ -105,7 +105,7 @@ class TitleScene extends Phaser.Scene {
             line-height: 1.2;
             white-space: nowrap;
         `;
-        titleDiv.textContent = 'StacksRunner';
+        titleDiv.textContent = 'The Maze';
         
         // Tagline text  
         const taglineDiv = document.createElement('div');

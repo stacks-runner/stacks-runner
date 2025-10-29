@@ -1,4 +1,4 @@
-## 🎉 StacksRunner Wallet Connection - COMPLETE & VERIFIED
+## 🎉 The Maze Wallet Connection - COMPLETE & VERIFIED
 
 ### ✅ Implementation Status: DONE
 
@@ -218,7 +218,7 @@ await stacksAPI.sendSTX(recipient, amount, memo)
 
 ## ✨ Summary
 
-**The StacksRunner wallet connection system is now fully operational and using the installed @stacks/connect module instead of CDN.**
+**The The Maze wallet connection system is now fully operational and using the installed @stacks/connect module instead of CDN.**
 
 - ✅ No external CDN dependencies
 - ✅ Real wallet connection (Leather, Hiro, XVerse)

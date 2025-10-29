@@ -1,4 +1,4 @@
-# ✅ StacksRunner - Quick Start Guide
+# ✅ The Maze - Quick Start Guide
 
 ## Start the Game
 
@@ -54,14 +54,14 @@ npm start
 ### Check Wallet Storage
 ```javascript
 // In browser console:
-localStorage.getItem('stacksrunner:wallet')
+localStorage.getItem('themaze:wallet')
 // Output: {"address":"SP...","publicKey":"test-public-key-xxx","connectedAt":"2025-10-17T..."}
 ```
 
 ### Clear Wallet (Start Fresh)
 ```javascript
 // In browser console:
-localStorage.removeItem('stacksrunner:wallet')
+localStorage.removeItem('themaze:wallet')
 location.reload()
 ```
 
